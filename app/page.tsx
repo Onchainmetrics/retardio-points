@@ -180,8 +180,8 @@ function calculateRetardioScore(
     }
 
     let totalPoints = 0;
-    let titles: string[] = [];
-    let breakdowns: ScoreBreakdown[] = [];
+    const titles: string[] = [];
+    const breakdowns: ScoreBreakdown[] = [];
 
     // Calculate NFT multiplier
     const nftTier = SCORING_CONFIG.nftTiers
@@ -195,7 +195,7 @@ function calculateRetardioScore(
             const points = calculateTokenPoints(token, balance);
             totalPoints += points;
             
-            let tierLabel = SCORING_CONFIG.tokenTiers.tier1.includes(token) ? 'Base Token' :
+            const tierLabel = SCORING_CONFIG.tokenTiers.tier1.includes(token) ? 'Base Token' :
                            SCORING_CONFIG.tokenTiers.tier2.includes(token) ? 'Tier 2 Token' :
                            'Tier 3 Token';
             
@@ -221,7 +221,7 @@ function calculateRetardioScore(
 
     // Check for special titles
     const nonZeroTokens = Object.entries(tokenBalances)
-        .filter(([_, balance]) => balance > 0);
+        .filter(([, balance]) => balance > 0);
     
     if (nonZeroTokens.length === Object.keys(TOKENS).length) {
         titles.push("Completionist");
@@ -244,13 +244,14 @@ function calculateRetardioScore(
 }
 
 export default function Home() {
+    // These state variables are used in the JSX, so we should keep them
     const [tokenBalances, setTokenBalances] = React.useState<TokenBalances>({});
-    const [inputAddress, setInputAddress] = React.useState<string>('');
     const [error, setError] = React.useState<string>('');
-    const [isValidAddress, setIsValidAddress] = React.useState<boolean>(false);
     const [nftCount, setNftCount] = React.useState<number>(0);
+    const [isValidAddress, setIsValidAddress] = React.useState<boolean>(false);
     const [score, setScore] = React.useState<ScoreResult>({ points: 0, titles: [], breakdowns: [] });
     const [isLoading, setIsLoading] = React.useState<boolean>(false);
+    const [inputAddress, setInputAddress] = React.useState<string>('');
 
     const connection = new web3.Connection(
         process.env.NEXT_PUBLIC_RPC_URL!,
@@ -266,7 +267,7 @@ export default function Home() {
             setIsValidAddress(true);
             setError('');
             return pubKey;
-        } catch (err) {
+        } catch (error: unknown) {
             setIsValidAddress(false);
             setError('Invalid wallet address');
             return null;
@@ -287,9 +288,7 @@ export default function Home() {
 
                     const accounts = await connection.getParsedTokenAccountsByOwner(
                         pubKey,
-                        {
-                            programId: TOKEN_PROGRAM_ID,
-                        }
+                        { programId: TOKEN_PROGRAM_ID }
                     );
 
                     for (const accountInfo of accounts.value) {
@@ -307,15 +306,25 @@ export default function Home() {
                                     balances[symbol] = Number(amount) / Math.pow(10, decimals);
                                 }
                             }
-                        } catch (parseErr) {
-                            console.error('Error parsing account:', parseErr);
+                        } catch (error: unknown) {
+                            console.error('Error parsing account:', error);
                             continue;
                         }
                     }
 
                     setTokenBalances(balances);
 
-                    let allNFTs: any[] = [];
+                    // Fix 'any' types with proper interfaces
+                    interface NFTGrouping {
+                        group_key: string;
+                        group_value: string;
+                    }
+
+                    interface NFTItem {
+                        grouping?: NFTGrouping[];
+                    }
+
+                    let allNFTs: NFTItem[] = [];
                     let page = 1;
                     let hasMore = true;
 
@@ -352,8 +361,8 @@ export default function Home() {
                     }
 
                     const cousinsCount = allNFTs.filter(
-                        (item: any) => item.grouping?.find(
-                            (g: { group_key: string; group_value: string }) => 
+                        (item: NFTItem) => item.grouping?.find(
+                            (g: NFTGrouping) => 
                                 g.group_key === "collection" && 
                                 g.group_value === RETARDIO_COUSINS_ADDRESS
                         )
@@ -366,15 +375,19 @@ export default function Home() {
                     setScore(scoreResult);
 
                     setError('');
-                } catch (tokenErr) {
-                    console.error('Token error:', tokenErr);
+                } catch (error: unknown) {
+                    console.error('Token error:', error);
                     setTokenBalances({});
                     setNftCount(0);
                     setScore({ points: 0, titles: [], breakdowns: [] });
                 }
-            } catch (err) {
-                console.error('Balance error:', err);
-                setError('Error fetching balance');
+            } catch (error: unknown) {
+                console.error('Balance error:', error);
+                if (error instanceof Error) {
+                    setError(error.message);
+                } else {
+                    setError('An unknown error occurred');
+                }
                 setTokenBalances({});
                 setNftCount(0);
                 setScore({ points: 0, titles: [], breakdowns: [] });
@@ -389,6 +402,10 @@ export default function Home() {
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         getBalance(inputAddress);
+    };
+
+    const handleAddressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setInputAddress(e.target.value);
     };
 
     return (
@@ -427,7 +444,7 @@ export default function Home() {
                                         className='w-full bg-white text-black px-2 py-1'
                                         placeholder="Enter wallet address"
                                         value={inputAddress}
-                                        onChange={(e) => setInputAddress(e.target.value)}
+                                        onChange={handleAddressChange}
                                     />
                                     <button type="submit" className='mt-2 w-full'>
                                         Calculate Score
@@ -466,7 +483,7 @@ export default function Home() {
                                                 </>
                                             ) : (
                                                 <h2 className='text-2xl font-bold'>
-                                                    🧩 👻 Retardio Score: {score.points.toLocaleString()} Points🤪 🌟
+                                                    🧩👻 Retardio Score: {score.points.toLocaleString()} Points🤪 🌟
                                                 </h2>
                                             )}
                                         </div>
