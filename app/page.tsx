@@ -165,6 +165,20 @@ function calculateRetardioScore(
     tokenBalances: TokenBalances,
     nftCount: number
 ): ScoreResult {
+    // Check if user has zero of everything at the start
+    const hasZeroOfEverything = Object.values(tokenBalances).every(balance => balance === 0) && nftCount === 0;
+    if (hasZeroOfEverything) {
+        return {
+            points: 0,
+            titles: ["Fadoor"],
+            breakdowns: [{
+                category: "No Holdings",
+                points: 0,
+                explanation: "Zero tokens and zero NFTs"
+            }]
+        };
+    }
+
     let totalPoints = 0;
     let titles: string[] = [];
     let breakdowns: ScoreBreakdown[] = [];
@@ -236,6 +250,7 @@ export default function Home() {
     const [isValidAddress, setIsValidAddress] = React.useState<boolean>(false);
     const [nftCount, setNftCount] = React.useState<number>(0);
     const [score, setScore] = React.useState<ScoreResult>({ points: 0, titles: [], breakdowns: [] });
+    const [isLoading, setIsLoading] = React.useState<boolean>(false);
 
     const connection = new web3.Connection(
         process.env.NEXT_PUBLIC_RPC_URL!,
@@ -259,6 +274,7 @@ export default function Home() {
     };
 
     const getBalance = async (address: string) => {
+        setIsLoading(true);
         const pubKey = await checkAddress(address);
         if (pubKey) {
             try {
@@ -362,7 +378,11 @@ export default function Home() {
                 setTokenBalances({});
                 setNftCount(0);
                 setScore({ points: 0, titles: [], breakdowns: [] });
+            } finally {
+                setIsLoading(false);
             }
+        } else {
+            setIsLoading(false);
         }
     };
 
@@ -415,13 +435,40 @@ export default function Home() {
                                 </div>
                             </form>
                             
-                            {isValidAddress && (
+                            {isLoading ? (
+                                <div className='window' style={{marginTop: '1rem'}}>
+                                    <div className='window-body'>
+                                        <div className='text-center relative animate-pulse'>
+                                            <h2 className='text-2xl font-bold mb-2'>
+                                                🎰 CALCULATING AUTISM LEVELS 🎲
+                                            </h2>
+                                            <p className='text-xl'>
+                                                🤡 Spinning the wheel of retardation... 🤡
+                                            </p>
+                                            <p className='text-lg mt-2'>
+                                                🎪 Hold tight while we measure your chromosomes 🎪
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : isValidAddress && (
                                 <div className='window' style={{marginTop: '1rem'}}>
                                     <div className='window-body'>
                                         <div className='text-center relative'>
-                                            <h2 className='text-2xl font-bold'>
-                                                🧩 👻 Retardio Score: {score.points.toLocaleString()} Points🤪 🌟
-                                            </h2>
+                                            {score.points === 0 ? (
+                                                <>
+                                                    <h2 className='text-2xl font-bold'>
+                                                        🤡 ZERO POINTS 🤡
+                                                    </h2>
+                                                    <p className='mt-2 text-xl'>
+                                                        👆😹 NGMI
+                                                    </p>
+                                                </>
+                                            ) : (
+                                                <h2 className='text-2xl font-bold'>
+                                                    🧩 👻 Retardio Score: {score.points.toLocaleString()} Points🤪 🌟
+                                                </h2>
+                                            )}
                                         </div>
 
                                         <fieldset className='mt-4'>
@@ -435,6 +482,7 @@ export default function Home() {
                                                                 badge px-3 py-1 rounded-full text-sm font-bold shadow-lg 
                                                                 transition-all duration-300 hover:scale-105 
                                                                 ${
+                                                                    title === 'Fadoor' ? 'bg-gradient-to-r from-gray-500 to-red-500 text-white border border-red-300' :
                                                                     title === 'RETARDIO MAXI' ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white border border-pink-300' :
                                                                     title === 'XD MAXI' ? 'bg-gradient-to-r from-pink-600 to-rose-600 text-white border border-pink-300' :
                                                                     title === 'GLORP MAXI' ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white border border-green-300' :
@@ -452,7 +500,17 @@ export default function Home() {
                                                                 hover:shadow-xl cursor-help
                                                             `}
                                                             title={
-                                                                title.includes('MAXI') ? `💎 True believer - Only holds ${title.split(' ')[0]} tokens` :
+                                                                title === 'Fadoor' ? 'Midcurve fading retardio' :
+                                                                title === 'RETARDIO MAXI' ? '💎 True believer - Only holds RETARDIO tokens' :
+                                                                title === 'XD MAXI' ? '💎 True believer - Only holds XD tokens' :
+                                                                title === 'GLORP MAXI' ? '💎 True believer - Only holds GLORP tokens' :
+                                                                title === 'AUTISM MAXI' ? '💎 True believer - Only holds AUTISM tokens' :
+                                                                title === 'MLG MAXI' ? '💎 True believer - Only holds MLG tokens' :
+                                                                title === 'RAPR MAXI' ? '💎 True believer - Only holds RAPR tokens' :
+                                                                title === 'YAKUB MAXI' ? '💎 True believer - Only holds YAKUB tokens' :
+                                                                title === 'FLOYDAI MAXI' ? '💎 True believer - Only holds FLOYDAI tokens' :
+                                                                title === 'UWU MAXI' ? '💎 True believer - Only holds UWU tokens' :
+                                                                title === 'BPD MAXI' ? '💎 True believer - Only holds BPD tokens' :
                                                                 title.includes('Whale') ? '🐋 WHALE - 500k+ points. Retar Dio.' :
                                                                 title.includes('Dolphin') ? '🐬 DOLPHIN - 50k-500k points. Study autism.' :
                                                                 title.includes('Supreme Autist') ? '🧩 SUPREME AUTIST - 50+ Retardio Cousins. Maximum autism achieved.' :
