@@ -1,4 +1,6 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+The retardiometer is a point calculator based on a wallet's contribution to Retardio/Milady culture
+
+Simply provide an address and check
 
 ## Getting Started
 
